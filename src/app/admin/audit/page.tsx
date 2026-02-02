@@ -7,7 +7,7 @@ import { useMessageStore } from "@/store/useMessageStore";
 import { HotelInformation } from "@/types/HotelInformation";
 import { Button, Card } from "@arco-design/web-react";
 import { IconRefresh } from "@arco-design/web-react/icon";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  *
