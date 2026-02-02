@@ -6,45 +6,47 @@ import { Table, Button, Badge } from '@arco-design/web-react';
 import { HOTEL_DATA } from '@/mocks/HotelData';
 import { useState } from 'react';
 import { HotelStatus } from '@/types/HotelInformation';
+import useSWR from 'swr';
+import { getHotels } from '@/actions/hotels';
 
 const MineTable = () => {
   // 主表格 - 酒店列表
   const hotelColumns = [
     {
       title: '酒店名称',
-      dataIndex: 'basicInfo.nameZh',
+      dataIndex: 'name_zh',
     },
     {
       title: '英文名称',
-      dataIndex: 'basicInfo.nameEn',
+      dataIndex: 'name_en',
     },
     {
       title: '地址',
-      dataIndex: 'basicInfo.address',
+      dataIndex: 'address',
     },
     {
       title: '星级',
-      dataIndex: 'basicInfo.starRating',
+      dataIndex: 'star_rating',
     },
     {
       title: '联系电话',
-      dataIndex: 'basicInfo.contactPhone',
+      dataIndex: 'contact_phone',
     },
     {
       title: '开业时间',
-      dataIndex: 'basicInfo.openingDate',
+      dataIndex: 'opening_date',
     },
     {
       title: '状态',
       dataIndex: 'status',
       render: (status: HotelStatus) => {
-        const curStatus = statusMap[status].text || status;
-        return <Badge status={statusMap[status].status} text={curStatus} />
+        const curStatus = statusMap[status]?.text || status;
+        return <Badge status={statusMap[status]?.status} text={curStatus} />
       },
     },
     {
       title: '更新时间',
-      dataIndex: 'updatedAt',
+      dataIndex: 'updated_at',
     },
     {
       title: '操作',
@@ -52,11 +54,12 @@ const MineTable = () => {
       width: '20px',
       render: (_, record) => (
         <div>
-          {/* **需添加按钮： 编辑 */}
           <Button type='primary' style={{marginBottom:'5px'}}>
             编辑
           </Button>
-          <Button onClick={() => removeRow(record.id)} type='primary' status='danger'>
+          <Button 
+            // onClick={() => removeRow(record.id)} 
+            type='primary' status='danger'>
             删除
           </Button>
         </div>
@@ -97,11 +100,12 @@ const MineTable = () => {
     offline: { text: '已下线', status: 'default' },
   };
 
-  const [data, setData] = useState(HOTEL_DATA)  // 表单展示的酒店信息  
+  // const [data, setData] = useState(HOTEL_DATA)  // 表单展示的酒店信息  
+  const { data = [] } = useSWR('hotels', getHotels);  //表单初始酒店信息渲染
 
-  function removeRow(key: string | number) {
-    setData(data.filter((item) => item.id !== key));
-  }
+  // function removeRow(key: string | number) {
+  //   setData(data.filter((item) => item.id !== key));
+  // }
 
   return (
     <Table 
@@ -111,7 +115,7 @@ const MineTable = () => {
       data={data} 
       noDataElement={<div>No data available</div>}
       expandedRowRender={cur => (
-        <Table rowKey="id" columns={roomColumns} data={cur.roomTypes} pagination={false} />
+        <Table rowKey="id" columns={roomColumns} data={cur.room_types} pagination={false} />
       )} 
     />
   );

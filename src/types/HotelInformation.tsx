@@ -12,13 +12,22 @@ export interface HotelInformation {
 }
 
 // 商户酒店数据
-export interface HotelBasicInfoType {
-  nameZh: string; // 酒店中文名
-  nameEn: string; // 酒店英文名
-  address: string;  // 酒店地址
-  starRating: number; // 酒店星级
-  openingDate: string;  // 酒店开业时间
-  contactPhone: string; // 联系电话
+export interface MineHotelInformationType {
+  // id: string;                          // id, 自动自增
+  name_zh: string;                        // 酒店中文名
+  name_en: string;                        // 酒店英文名
+  address: string;                        // 酒店地址
+  star_rating: number;                    // 酒店星级
+  opening_date: string;                   // 酒店开业时间
+  contact_phone: string;                  // 联系电话
+  // room_types: HotelRoomTypes[];           // 房间类型
+  images?: HotelImageType;                // 展示图片
+  surroundings?: HotelSurroundingType;    // 周边信息
+  promotions?: PromotionType[];           // 优惠信息
+  status: HotelStatus;                    // 状态
+  // created_at: string;                     // 创建日期
+  // updated_at: string;                     // 更新日期
+  merchant_id?: string;                   // 商户id(暂定不需要)
 }
 
 export interface HotelRoomTypes {
@@ -59,16 +68,5 @@ export interface PromotionType {  //优惠
 // offline：已被管理员下线
 export type HotelStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'offline';
 
-export interface MineHotelInformationType {
-  id: string;
-  basicInfo: HotelBasicInfoType;
-  roomTypes: HotelRoomTypes[];
-  images: HotelImageType;
-  surroundings: HotelSurroundingType;
-  promotions: PromotionType[];
-  status: HotelStatus;
-  createdAt: string;
-  updatedAt: string;
-  merchantId: string;
-} 
+
 
