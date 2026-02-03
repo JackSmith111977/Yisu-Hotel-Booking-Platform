@@ -11,13 +11,12 @@ interface AuditTableProps {
 export default function AuditTable({ isLoading, data, onView }: AuditTableProps) {
   const columns = [
     { title: "ID", dataIndex: "id", width: 80 },
-    { title: "酒店名称", dataIndex: "name", width: 220 },
-    { title: "提交商户", dataIndex: "merchant" },
+    { title: "酒店名称", dataIndex: "nameZh", width: 220 },
+    { title: "提交商户", dataIndex: "merchantId" },
     {
       title: "提交时间",
       dataIndex: "submitTime",
-      sorter: (a: HotelInformation, b: HotelInformation) =>
-        a.submitTime.localeCompare(b.submitTime),
+      sorter: (a: HotelInformation, b: HotelInformation) => a.updatedAt.localeCompare(b.updatedAt),
     },
     {
       title: "审核状态",
