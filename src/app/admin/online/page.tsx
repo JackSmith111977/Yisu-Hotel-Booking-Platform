@@ -37,7 +37,7 @@ export default function Home() {
         activeTab === "approved" ? item.status === "approved" : item.status === "offline";
 
       // 搜索栏关键字匹配
-      const keywordMatch = item.name.includes(keyword) || item.id.includes(keyword);
+      const keywordMatch = item.nameZh.includes(keyword) || item.id.includes(keyword);
 
       return statusMatch && keywordMatch;
     });
@@ -57,7 +57,7 @@ export default function Home() {
         prev.map((item) => (item.id === record.id ? { ...item, status: newStatus } : item))
       );
 
-      showMessage("success", `酒店${record.name}已经${actionText}成功`);
+      showMessage("success", `酒店${record.nameZh}已经${actionText}成功`);
       setLoading(false);
     }, 1000);
   };

@@ -76,7 +76,7 @@ export default function Home() {
 
     // 模拟耗时请求
     setTimeout(() => {
-      console.log(`驳回${curRecord?.name}的请求，原因是：${reason}`);
+      console.log(`驳回${curRecord?.nameZh}的请求，原因是：${reason}`);
       // 更新本地数据
       setData((prev) =>
         prev.map((item) => (item.id === curRecord?.id ? { ...item, status: "rejected" } : item))

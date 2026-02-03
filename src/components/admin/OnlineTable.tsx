@@ -12,13 +12,12 @@ interface OnlineTableProps {
 export default function OnlineTable({ isLoading, data, onToggleStatus }: OnlineTableProps) {
   const columns = [
     { title: "ID", dataIndex: "id", width: 80 },
-    { title: "酒店名称", dataIndex: "name", width: 220 },
-    { title: "提交商户", dataIndex: "merchant" },
+    { title: "酒店名称", dataIndex: "nameZh", width: 220 },
+    { title: "提交商户", dataIndex: "merchantId" },
     {
       title: "更新时间",
       dataIndex: "submitTime",
-      sorter: (a: HotelInformation, b: HotelInformation) =>
-        a.submitTime.localeCompare(b.submitTime),
+      sorter: (a: HotelInformation, b: HotelInformation) => a.updatedAt.localeCompare(b.updatedAt),
     },
     {
       title: "当前状态",
