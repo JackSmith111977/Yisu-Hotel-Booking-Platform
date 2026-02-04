@@ -33,12 +33,14 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
     const [confirmVisible, setConfirmVisible] = useState(false);    // 确认弹窗状态
     const [form] = Form.useForm();
 
-    const onOkay = async () => {
+    const onOkay = async (okStatus: 'draft' | 'submit') => {
         try {
-            const values = await form.validate();
+            // const values = await form.validate();
+            // 草稿时跳过校验
+            const values = okStatus === 'draft' ? form.getFieldsValue() : await form.validate();
             setConfirmLoading(true);
     
-            // 整理酒店数据（不包含 room_types）。编辑时保留原有 status，创建时设置为 pending。
+            // 整理酒店数据。编辑时保留原有 status，创建时设置为 pending。
             const hotelData: Partial<MineHotelInformationType> = {
                 name_zh: values.nameZh,
                 name_en: values.nameEn,
@@ -47,9 +49,9 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
                 star_rating: values.starRating,
                 opening_date: values.openingDate,
                 contact_phone: values.contactPhone,
-                ...(initialData ? { } : { status: "pending" as const }),
+                // ...(initialData ? { } : { status: okStatus === 'draft' ? 'draft' as const : 'pending' as const }),
+                status: okStatus === 'draft' ? 'draft' : 'pending',
             };
-
             console.log('提交酒店数据:', hotelData);
 
             if (initialData) {
@@ -61,11 +63,11 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
                 if (hotel) {
                     if (values.roomTypes?.length > 0) {
                         const roomTypesData = values.roomTypes.map((room: HotelRoomTypes) => ({
-                            name: room.name,
+                            name: room.name || '',
                             price: room.price,
                             quantity: room.quantity,
                             size: room.size,
-                            description: room.description,
+                            description: room.description || '',
                         }));
                         console.log('替换房型数据:', roomTypesData);
                         await replaceRoomTypes(initialData.id as number, roomTypesData);
@@ -88,12 +90,12 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
                     // 关联酒店 ID 并创建房型
                     if (values.roomTypes?.length > 0) {
                         const roomTypesData = values.roomTypes.map((room: HotelRoomTypes) => ({
-                            hotel_id: hotel.id,  // 使用返回的酒店 ID
-                            name: room.name,
+                            hotel_id: hotel.id,
+                            name: room.name || '',
                             price: room.price,
                             quantity: room.quantity,
                             size: room.size,
-                            description: room.description,
+                            description: room.description || '',
                         }));
                         
                         console.log('提交房型数据:', roomTypesData);
@@ -107,7 +109,6 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
             }
         } catch (error) {
             console.error('创建/更新失败:', error);
-            Message.error('保存失败');
         } finally {
             setConfirmLoading(false);
         }
@@ -180,9 +181,15 @@ const HotelModal = ({ modalVisible, setModalVisible, initialData, onCreated }: H
                 title={initialData ? '编辑酒店' : '添加酒店'}
                 style={{ width: '60%' }}
                 visible={modalVisible}
-                onOk={onOkay}
                 confirmLoading={confirmLoading}
                 onCancel={() => handleCancel()}
+                footer={
+                    <>
+                      <Button onClick={() => handleCancel()}>取消</Button>
+                      <Button onClick={() => onOkay('draft')}>保存草稿</Button>
+                      <Button type="primary" status="success" onClick={() => onOkay('submit')}>确定</Button>
+                    </>
+                  }
             >
                 <Form
                     {...formItemLayout}

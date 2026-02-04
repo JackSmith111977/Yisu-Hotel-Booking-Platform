@@ -1,43 +1,22 @@
-// **待补充：表格吸顶
-// **没有展示图片信息，是否需要添加详情按钮
-// **排序
 "use client";
 import { Table, Button, Badge, Modal, Message } from '@arco-design/web-react';
-import { useEffect, useState } from 'react';
-import { HotelStatus } from '@/types/HotelInformation';
-import { deleteHotel, getHotels } from '@/actions/hotels';
+import { useState } from 'react';
 import { MineHotelInformationType } from '@/types/HotelInformation';
 import dayjs from 'dayjs'
-import { Dispatch, SetStateAction } from 'react';
 
 interface MineTableProps {
     onEdit: (record: MineHotelInformationType) => void;
+    onView?: (record: MineHotelInformationType) => void;
+    onDelete?: (id: number) => Promise<boolean>;
     refreshKey?: number;
     statusFilter: boolean;
+    keyword?: string;
+    data: MineHotelInformationType[];
   }
 
-const MineTable = ({ onEdit, refreshKey, statusFilter }: MineTableProps) => {
-  const [data, setData] = useState<MineHotelInformationType[]>([])  // 表单展示的酒店信息
+const MineTable = ({ onEdit, data, onDelete, statusFilter, onView }: MineTableProps) => {  
   const [confirmVisible, setConfirmVisible] = useState(false);    // 确认弹窗状态
   const [Id, setId] = useState<number | null>(null);  // 存储需删除的 id
-
-  // 主表单提交状态映射
-  const statusMap: Record<HotelStatus, { text: string; status: 'success' | 'warning' | 'error' | 'default' }> = {
-    draft: { text: '草稿', status: 'default' },
-    pending: { text: '待审核', status: 'warning' },
-    approved: { text: '已发布', status: 'success' },
-    rejected: { text: '已拒绝', status: 'error' },
-    offline: { text: '已下线', status: 'default' },
-  };
-
-  // 请求数据并更新状态
-  const fetchData = async () => {
-    const allData = await getHotels();
-    const data = allData?.filter(item => statusFilter  ? item.status !== 'draft' : item.status === 'draft')
-    console.log("data", data);
-    setData(data || []);
-    return data;
-  }
 
   // 点击删除按钮时，同时设置 id 和打开弹窗
   const handleDelete = (id?: number) => {
@@ -46,18 +25,20 @@ const MineTable = ({ onEdit, refreshKey, statusFilter }: MineTableProps) => {
     setConfirmVisible(true);
   };
 
-  // 确认删除列表某一项
+  // 确认删除列表某一项 - 委托给父组件处理删除并刷新
   const handleConfirmDelete = async () => {
     if (!Id) return;
-    const ok = await deleteHotel(Id as number);
-    if (!ok) {
-      Message.error('删除失败');
+    if (onDelete) {
+      const ok = await onDelete(Id as number);
+      if (!ok) {
+        Message.error('删除失败');
+        return;
+      }
+      setConfirmVisible(false);
       return;
     }
 
-    Message.success('删除成功');
-    fetchData();  // 刷新列表
-    setConfirmVisible(false);
+    Message.error('删除失败');
   }
 
   // 主表格 - 酒店列表
@@ -65,37 +46,47 @@ const MineTable = ({ onEdit, refreshKey, statusFilter }: MineTableProps) => {
     {
       title: '酒店名称',
       dataIndex: 'name_zh',
+      render: (_: unknown, record: MineHotelInformationType) => {
+        return (
+          <>
+            <span>{record.name_zh}</span>
+            <span 
+              style={{fontSize:11, marginLeft:5, color:'blue', cursor: 'pointer'}}
+              onClick={() => onView?.(record)}
+            >详情</span>
+          </>
+        )
+      }
     },
-    // {
-    //   title: '英文名称',
-    //   dataIndex: 'name_en',
-    // },
     {
       title: '地址',
       dataIndex: 'address',
       render: (_: unknown, record: MineHotelInformationType) => {
-        return `${JSON.parse(record.region).filter((item: string) => item !== '市辖区').join('') || ''}${record.address || ''}`;
+        return `${JSON.parse(record.region)?.filter((item: string) => item !== '市辖区').join('') || ''}${record.address || ''}`;
       },
     },
     {
-      title: '星级',
-      dataIndex: 'star_rating',
-    },
-    // {
-    //   title: '联系电话',
-    //   dataIndex: 'contact_phone',
-    // },
-    // {
-    //   title: '开业时间',
-    //   dataIndex: 'opening_date',
-    // },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      render: (status: HotelStatus) => {
-        const curStatus = statusMap[status]?.text || status;
-        return <Badge status={statusMap[status]?.status} text={curStatus} />
+      title: "审核状态",
+      dataIndex: "status",
+      render: (status: string) => {
+        const statusMap: Record<string, { status: "processing" | "success" | "error" | "default"; text: string }> = {
+          draft: { status: "default", text: "草稿" },
+          pending: { status: "processing", text: "待审核" },
+          approved: { status: "success", text: "已发布" },
+          rejected: { status: "error", text: "已拒绝" },
+          offline: { status: "error", text: "已下线" },
+        };
+        const config = statusMap[status] || statusMap.pending;
+        return <Badge status={config.status} text={config.text} />;
       },
+      filters: statusFilter ?
+        [
+          { text: "待审核", value: "pending" },
+          { text: "已发布", value: "approved" },
+          { text: "已拒绝", value: "rejected" },
+          { text: "已下线", value: "offline" },
+        ] : undefined,
+      onFilter: (value: string, record: MineHotelInformationType) => record.status === value,
     },
     {
       title: '更新时间',
@@ -147,14 +138,6 @@ const MineTable = ({ onEdit, refreshKey, statusFilter }: MineTableProps) => {
       dataIndex: 'description',
     },
   ];
-
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchData();
-    };
-    loadData();
-  }, [refreshKey])
-
 
   return (
     <>
