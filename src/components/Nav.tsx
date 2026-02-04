@@ -7,7 +7,6 @@ import {
   IconDashboard,
   IconSettings,
   IconMenu,
-  IconPlusCircle,
   IconEdit
 } from "@arco-design/web-react/icon";
 import { useRouter } from "next/navigation";
@@ -21,9 +20,8 @@ const menuConfig = {
       { key: "4", label: "设置选项", path: "/admin/setting", icon: <IconSettings /> },
     ],
     hotel: [
-      { key: "1", label: "我的酒店", path: "/hotel", icon: <IconMenu /> },
-      // { key: "2", label: "添加酒店", path: "/hotel/add", icon: <IconPlusCircle /> },
-      { key: "2", label:"草稿箱", path: "hotel/edit", icon: <IconEdit />}
+      { key: "1", label: "我的酒店", path: "/hotel", icon: <IconMenu />},
+      { key: "2", label:"草稿箱", path: "hotel/draft", icon: <IconEdit />}
     ],
   };
 

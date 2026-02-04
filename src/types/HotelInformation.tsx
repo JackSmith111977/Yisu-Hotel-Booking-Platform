@@ -98,7 +98,7 @@ export interface MineHotelInformationType {
   surroundings?: HotelSurroundingType;    // 周边信息
   promotions?: PromotionType[];           // 优惠信息
   status: HotelStatus;                    // 状态
-  // updated_at: string;                     // 更新日期
+  updated_at: string;                     // 更新日期
   merchant_id?: string;                   // 商户id(暂定不需要)
   rejected_reason?: string;
 }
