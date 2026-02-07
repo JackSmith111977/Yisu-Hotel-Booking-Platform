@@ -146,3 +146,32 @@ export async function rejectHotel(hotelId: string, reason: string): Promise<void
     throw new Error(`驳回酒店失败: ${error.message}`);
   }
 }
+
+export async function offlineHotel(hotelId: string): Promise<void> {
+  // 1. 验证输入参数
+  if (!hotelId) {
+    throw new Error("酒店 ID 不能为空");
+  }
+
+  // 2. 获取酒店信息
+  const { data: hotel, error: fetchError } = await supabase_admin
+    .from("hotels")
+    .select("status")
+    .eq("id", parseInt(hotelId))
+    .single();
+  if (fetchError) throw new Error(`查询酒店状态失败: ${fetchError.message}`);
+  if (!hotel) throw new Error("酒店不存在");
+  if (hotel.status !== "approved") throw new Error("酒店未通过审核");
+
+  // 3. 下线酒店
+  const { error } = await supabase_admin
+    .from("hotels")
+    .update({ status: "offline", updated_at: new Date().toISOString() })
+    .eq("id", parseInt(hotelId));
+
+  // 4. 错误处理
+  if (error) {
+    console.error("下线酒店失败", error);
+    throw new Error(`下线酒店失败: ${error.message}`);
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { fetchHotelsList } from "@/actions/admin_service";
+import { approveHotel, fetchHotelsList, offlineHotel } from "@/actions/admin_service";
 import OnlineTable from "@/components/admin/OnlineTable";
 import { useMessageStore } from "@/store/useMessageStore";
 import { HotelInformation } from "@/types/HotelInformation";
@@ -72,23 +72,28 @@ export default function Home() {
     });
   }, [data, activeTab, keyword]);
 
-  const handleToggleStatus = (record: HotelInformation) => {
+  /**
+   * 酒店上下线管理
+   * @param record
+   */
+  const handleToggleStatus = async (record: HotelInformation) => {
     setLoading(true);
 
-    // 模拟耗时请求
-    // TODO: 添加实际逻辑
-    setTimeout(() => {
-      const newStatus = record.status === "approved" ? "offline" : "approved";
-      const actionText = newStatus === "approved" ? "上线" : "下线";
-
-      // 更新本地数据
-      setData((prev) =>
-        prev.map((item) => (item.id === record.id ? { ...item, status: newStatus } : item))
-      );
-
-      showMessage("success", `酒店${record.nameZh}已经${actionText}成功`);
+    try {
+      if (record.status === "approved") {
+        await offlineHotel(record.id);
+        showMessage("success", `酒店${record.nameZh}已下线`);
+      } else {
+        await approveHotel(record.id);
+        showMessage("success", `酒店${record.nameZh}已上线`);
+      }
+    } catch (error: unknown) {
+      console.log("酒店上下线失败", error);
+      showMessage("error", error instanceof Error ? error.message : "操作失败");
+    } finally {
       setLoading(false);
-    }, 1000);
+      await loadData();
+    }
   };
 
   return (
