@@ -60,7 +60,7 @@ export interface HotelInformation {
    * @description: 酒店审核状态
    * @type {"pending" | "approved" | "rejected" | "offline"}
    */
-  status: "pending" | "approved" | "rejected" | "offline"; // 审核状态
+  status: "pending" | "approved" | "rejected" | "offline" | "draft"; // 审核状态
   /**
    * @description: 商户id
    * @type {string}
@@ -85,21 +85,21 @@ export interface HotelInformation {
 
 // 商户酒店数据
 export interface MineHotelInformationType {
-  id?: number;                          // id, 自动自增
-  name_zh: string;                        // 酒店中文名
-  name_en: string;                        // 酒店英文名
-  region: string;                         // 酒店地址
-  address: string;                        // 详细地址
-  star_rating: number;                    // 酒店星级
-  opening_date: string;                   // 酒店开业时间
-  contact_phone: string;                  // 联系电话
-  room_types?: HotelRoomTypes[];           // 房间类型
-  images?: string;                // 展示图片
-  surroundings?: HotelSurroundingType;    // 周边信息
-  promotions?: PromotionType[];           // 优惠信息
-  status: HotelStatus;                    // 状态
-  updated_at: string;                     // 更新日期
-  merchant_id?: string;                   // 商户id(暂定不需要)
+  id?: number; // id, 自动自增
+  name_zh: string; // 酒店中文名
+  name_en: string; // 酒店英文名
+  region: string; // 酒店地址
+  address: string; // 详细地址
+  star_rating: number; // 酒店星级
+  opening_date: string; // 酒店开业时间
+  contact_phone: string; // 联系电话
+  room_types?: HotelRoomTypes[]; // 房间类型
+  images?: string; // 展示图片
+  surroundings?: HotelSurroundingType; // 周边信息
+  promotions?: PromotionType[]; // 优惠信息
+  status: HotelStatus; // 状态
+  updated_at: string; // 更新日期
+  merchant_id?: string; // 商户id(暂定不需要)
   rejected_reason?: string;
 }
 
@@ -141,13 +141,10 @@ export interface PromotionType {
 // approved：已被管理员发布
 // rejected：已被管理员拒绝
 // offline：已被管理员下线
-export type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'offline';
+export type HotelStatus = "draft" | "pending" | "approved" | "rejected" | "offline";
 
 export type AddressDataType = {
   [province: string]: {
-    [city: string]: string[]
-  }
-}
-
-
-
+    [city: string]: string[];
+  };
+};
