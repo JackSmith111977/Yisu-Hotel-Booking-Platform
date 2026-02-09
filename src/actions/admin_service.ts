@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase_admin } from "@/lib/supabase_admin";
+import { AuditLogs } from "@/types/AuditLogsType";
 import { HotelInformation } from "@/types/HotelInformation";
 
 /**
@@ -90,10 +91,17 @@ export async function fetchHotelsList(): Promise<HotelInformation[]> {
  * @param {string} hotelId - 要审核酒店 ID
  * @returns {Promise<void>} - 无返回值
  */
-export async function approveHotel(hotelId: string): Promise<void> {
+export async function approveHotel(
+  hotelId: string,
+  hotelName: string,
+  action: string
+): Promise<void> {
   // 1. 验证输入参数
   if (!hotelId) {
     throw new Error("酒店 ID 不能为空");
+  }
+  if (!hotelName) {
+    throw new Error("酒店名称不能为空");
   }
 
   // 2. 更新数据库
@@ -112,15 +120,31 @@ export async function approveHotel(hotelId: string): Promise<void> {
     console.error("审核通过失败", error);
     throw new Error(`审核通过失败: ${error.message}`);
   }
+
+  // 4. 记录日志
+  await recordLog(hotelId, hotelName || "", "approve");
 }
 
-export async function rejectHotel(hotelId: string, reason: string): Promise<void> {
+/**
+ * 审核驳回酒店
+ * @param {string} hotelId - 要驳回酒店 ID
+ * @param {string} reason - 驳回理由
+ * @returns {Promise<void>} - 无返回值
+ */
+export async function rejectHotel(
+  hotelId: string,
+  hotelName: string,
+  reason: string
+): Promise<void> {
   // 1. 验证输入参数
   if (!hotelId) {
     throw new Error("酒店 ID 不能为空");
   }
   if (!reason) {
     throw new Error("拒绝理由不能为空");
+  }
+  if (!hotelName) {
+    throw new Error("酒店名称不能为空");
   }
 
   // 优化 1. 先查询当前状态
@@ -145,12 +169,23 @@ export async function rejectHotel(hotelId: string, reason: string): Promise<void
     console.error("驳回酒店失败", error);
     throw new Error(`驳回酒店失败: ${error.message}`);
   }
+
+  // 4. 记录日志
+  await recordLog(hotelId, hotelName || "", "reject", reason);
 }
 
-export async function offlineHotel(hotelId: string): Promise<void> {
+/**
+ * 下线酒店
+ * @param {string} hotelId - 要下线的酒店 ID
+ * @returns {Promise<void>} - 无返回值
+ */
+export async function offlineHotel(hotelId: string, hotelName: string): Promise<void> {
   // 1. 验证输入参数
   if (!hotelId) {
     throw new Error("酒店 ID 不能为空");
+  }
+  if (!hotelName) {
+    throw new Error("酒店名称不能为空");
   }
 
   // 2. 获取酒店信息
@@ -174,8 +209,15 @@ export async function offlineHotel(hotelId: string): Promise<void> {
     console.error("下线酒店失败", error);
     throw new Error(`下线酒店失败: ${error.message}`);
   }
+
+  // 5. 记录日志
+  await recordLog(hotelId, hotelName || "", "offline");
 }
 
+/**
+ * 获取酒店状态统计
+ * @returns {Promise<{ pending: number; online: number; rejected: number; offline: number; total: number }>} - 酒店状态统计
+ */
 export async function fetchDashboardStats() {
   // 1. 并行查询酒店状态统计
   const [pending, approved, rejected, offline] = await Promise.all([
@@ -220,4 +262,62 @@ export async function fetchDashboardStats() {
     total:
       (pending.count || 0) + (approved.count || 0) + (rejected.count || 0) + (offline.count || 0),
   };
+}
+
+/**
+ * 日志记录
+ */
+async function recordLog(hotelId: string, hotelName: string, action: string, reason?: string) {
+  // 1. 验证输入参数
+  if (!hotelId) {
+    throw new Error("酒店 ID 不能为空");
+  }
+  if (!hotelName) {
+    throw new Error("酒店名称不能为空");
+  }
+  if (!action) {
+    throw new Error("操作不能为空");
+  }
+
+  // 2. 写入日志表
+  const { error } = await supabase_admin.from("audit_logs").insert({
+    target_id: parseInt(hotelId),
+    target_name: hotelName,
+    action_type: action,
+    content: reason || "",
+    operator_name: "开发者测试",
+  });
+
+  // 3. 错误处理
+  if (error) {
+    console.error("记录日志失败", error);
+  }
+}
+
+/**
+ * 获取审计日志
+ * @returns {Promise<AuditLogs[]>} - 审计日志列表
+ */
+export async function fetchAuditLogs(): Promise<AuditLogs[]> {
+  // 1. 查询审计日志表
+  const { data, error } = await supabase_admin
+    .from("audit_logs")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  // 2. 错误处理
+  if (error) {
+    console.error("查询审计日志失败", error);
+    throw new Error(`查询审计日志失败: ${error.message}`);
+  }
+
+  // 3. 返回结果
+  return (data as AuditLogs[]).map((row) => ({
+    id: row.id.toString(),
+    operator_name: row.operator_name,
+    action_type: row.action_type,
+    target_name: row.target_name,
+    created_at: row.created_at,
+    content: row.content,
+  }));
 }

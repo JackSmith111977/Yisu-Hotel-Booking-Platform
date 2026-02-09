@@ -73,11 +73,16 @@ export default function Home() {
 
   /**
    * 跳转到审核页面
+   * @param tab 审核类型
    */
   const jumpToAudit = (tab: string) => {
     router.push(`/admin/audit?tab=${tab}`);
   };
 
+  /**
+   * 跳转到已上线酒店页面
+   * @param tab 酒店状态
+   */
   const jumpToOnline = (tab: string) => {
     router.push(`/admin/online?tab=${tab}`);
   };
