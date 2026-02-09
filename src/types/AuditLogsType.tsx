@@ -5,7 +5,7 @@
  * @param operator_name 操作者
  * @param action_type 操作类型
  * @param target_name 目标名称
- * @param action_time 操作时间
+ * @param created_at 操作时间
  * @param content 操作详情
  */
 export interface AuditLogs {
@@ -45,4 +45,39 @@ export interface AuditLogs {
    * @type string
    */
   content: string;
+}
+
+/**
+ * 操作趋势数据点
+ * @description 操作趋势数据点
+ * @param date 日期
+ * @param approved 已通过数量
+ * @param rejected 已拒绝数量
+ * @param total 总操作数量
+ */
+interface TrendPoint {
+  /**
+   * 日期
+   * @description 日期
+   * @type string
+   */
+  date: string;
+  /**
+   * 已通过数量
+   * @description 已通过数量
+   * @type number
+   */
+  approved: number;
+  /**
+   * 已拒绝数量
+   * @description 已拒绝数量
+   * @type number
+   */
+  rejected: number;
+  /**
+   * 总操作数量
+   * @description 总操作数量
+   * @type number
+   */
+  total: number;
 }

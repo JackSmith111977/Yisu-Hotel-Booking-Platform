@@ -1,7 +1,7 @@
 "use server";
 
 import { supabase_admin } from "@/lib/supabase_admin";
-import { AuditLogs } from "@/types/AuditLogsType";
+import { AuditLogs, TrendPoint } from "@/types/AuditLogsType";
 import { HotelInformation } from "@/types/HotelInformation";
 
 /**
@@ -122,7 +122,7 @@ export async function approveHotel(
   }
 
   // 4. 记录日志
-  await recordLog(hotelId, hotelName || "", "approve");
+  await recordLog(hotelId, hotelName || "", action);
 }
 
 /**
@@ -321,3 +321,69 @@ export async function fetchAuditLogs(): Promise<AuditLogs[]> {
     content: row.content,
   }));
 }
+
+/**
+ * 获取操作趋势数据
+ * @returns {Promise<{ date: string; count: number }[]>} - 操作趋势数据
+ */
+export const fetchTrendData = async () => {
+  // 获取当前日期，计算七天前的起始时间
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+
+  // 获取七天内的操作时间和操作类型
+  const { data, error } = await supabase_admin
+    .from("audit_logs")
+    .select("created_at, action_type")
+    .gte("created_at", startDate.toISOString())
+    .in("action_type", ["approve", "reject"]);
+
+  // 错误处理
+  if (error) {
+    console.error("查询操作趋势数据失败", error);
+    throw new Error(`查询操作趋势数据失败: ${error.message}`);
+  }
+
+  // 格式化字符串为 MM-DD
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${month}-${day}`;
+  };
+
+  // 初始化 7 天的空底表
+  const trendMap = new Map<string, TrendPoint>();
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = formatDate(date.toISOString());
+    trendMap.set(dateStr, {
+      date: dateStr,
+      approved: 0,
+      rejected: 0,
+      total: 0,
+    });
+  }
+
+  // 归类聚合
+  data.forEach((row) => {
+    // 该行的日期键
+    const dateKey = formatDate(row.created_at);
+    // 该日期的趋势点
+    const point = trendMap.get(dateKey);
+    if (point) {
+      if (row.action_type === "approve") {
+        point.approved += 1;
+      } else if (row.action_type === "reject") {
+        point.rejected += 1;
+      }
+      // 无论 approve 或 reject，都增加 total
+      point.total += 1;
+    }
+  });
+
+  // 返回趋势点数组
+  // 翻转数组【七天前，六天前，...，今天】
+  return Array.from(trendMap.values()).reverse();
+};
