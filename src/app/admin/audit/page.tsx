@@ -1,13 +1,18 @@
 "use client";
-import { fetchHotelsList } from "@/actions/admin_service";
+import { approveHotel, fetchHotelsList, rejectHotel } from "@/actions/admin_service";
 import AuditDrawer from "@/components/admin/AuditDrawer";
 import AuditTable from "@/components/admin/AuditTable";
 import RejectModal from "@/components/admin/RejectModal";
 import { useMessageStore } from "@/store/useMessageStore";
 import { HotelInformation } from "@/types/HotelInformation";
-import { Button, Card } from "@arco-design/web-react";
+import { Badge, Button, Card, Tabs } from "@arco-design/web-react";
 import { IconRefresh } from "@arco-design/web-react/icon";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+// TODO 可能优化：批量操作支持
+// TODO 可能优化：操作历史记录
+// TODO 可能优化：创建统一的错误处理逻辑
+// TODO 可能优化：添加快捷键支持
 
 /**
  *
@@ -25,7 +30,8 @@ export default function Home() {
 
   // 驳回对话框可见性
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
-  // 驳回对话框加载状态
+
+  // 加载状态
   const [submitting, setSubmitting] = useState(false);
 
   // 当前记录行
@@ -34,10 +40,42 @@ export default function Home() {
   // 获取全局消息订阅
   const showMessage = useMessageStore((state) => state.showMessage);
 
+  // tab 状态
+  const [activeTab, setActiveTab] = useState("pending");
+
+  // 获取 URL 参数
+  const searchParams = useSearchParams();
+
+  // 读取 URL 中的 tab 参数
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "pending" || tab === "processed") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  // 统计数据
+  const stats = useMemo(() => {
+    const pendingCount = data.filter((item) => item.status === "pending").length;
+    const processedCount = data.filter((item) => item.status !== "pending").length;
+    return { pendingCount, processedCount };
+  }, [data]);
+
+  // 根据当前 tab 过滤数据
+  const filteredData = useMemo(() => {
+    if (activeTab === "pending") {
+      return data.filter((item) => item.status === "pending");
+    } else {
+      return data.filter((item) => item.status !== "pending" && item.status !== "draft");
+    }
+  }, [data, activeTab]);
   /**
    * 获取酒店列表逻辑
    */
   const loadData = async () => {
+    // 防止重复请求
+    if (loading) return;
+
     setLoading(true);
     try {
       const res = await fetchHotelsList();
@@ -64,27 +102,52 @@ export default function Home() {
   const handleOpenDrawer = (record: HotelInformation) => {
     setCurRecord(record);
     setDrawerVisible(true);
-    // TODO: 调用 API
   };
 
   /**
    * 刷新逻辑
    */
-  const handleRefresh = () => {
-    // TODO: 调用 API
+  const handleRefresh = async () => {
+    // 调用 loadDate 获取数据
+    await loadData();
+
+    // 刷新成功提示
+    showMessage("success", "刷新成功");
   };
 
   /**
    * 审核通过逻辑
    */
-  const handleApprove = () => {
-    showMessage("success", "审核通过");
-    setDrawerVisible(false);
-    // 更新本地数据
-    setData((prev) =>
-      prev.map((item) => (item.id === curRecord?.id ? { ...item, status: "approved" } : item))
-    );
-    // TODO: 调用 API
+  const handleApprove = async () => {
+    if (!curRecord) return;
+
+    // 添加加载状态
+    setSubmitting(true);
+
+    try {
+      // 1. 调用 API
+      await approveHotel(curRecord.id, curRecord.nameZh, "approve");
+
+      // 2. 更新本地数据
+      setData((prev) =>
+        prev.map((item) => (item.id === curRecord.id ? { ...item, status: "approved" } : item))
+      );
+
+      // TODO 可能优化：获取最新数据，刷新整个列表
+
+      // 3. 显示成功消息
+      showMessage("success", `酒店${curRecord.nameZh}审核通过`);
+
+      // 4. 关闭抽屉
+      setDrawerVisible(false);
+    } catch (e: unknown) {
+      // 5. 错误处理
+      console.log("审核通过失败：", e);
+      showMessage("error", e instanceof Error ? e.message : "审核通过失败");
+    } finally {
+      // 6. 重置加载状态
+      setSubmitting(false);
+    }
   };
 
   /**
@@ -97,23 +160,36 @@ export default function Home() {
   /**
    * 驳回确认逻辑
    */
-  const handleRejectConfirm = (reason: string) => {
+  const handleRejectConfirm = async (reason: string) => {
+    if (!curRecord) return;
+
+    // 1. 添加加载状态
     setSubmitting(true);
 
-    // 模拟耗时请求
-    setTimeout(() => {
-      console.log(`驳回${curRecord?.nameZh}的请求，原因是：${reason}`);
-      // 更新本地数据
-      setData((prev) =>
-        prev.map((item) => (item.id === curRecord?.id ? { ...item, status: "rejected" } : item))
-      );
-      showMessage("success", "驳回成功");
+    // 2. 调用 API
+    try {
+      await rejectHotel(curRecord.id, curRecord.nameZh, reason);
 
-      // 关闭所有弹窗
-      setSubmitting(false);
+      // 3. 更新本地数据
+      setData((prev) =>
+        prev.map((item) =>
+          item.id === curRecord.id ? { ...item, status: "rejected", rejectedReason: reason } : item
+        )
+      );
+
+      // 4. 显示成功消息
+      showMessage("success", `酒店${curRecord.nameZh}审核驳回`);
+
+      // 5. 关闭拒绝弹窗和抽屉
       setRejectModalVisible(false);
       setDrawerVisible(false);
-    }, 1000);
+    } catch (e: unknown) {
+      console.log("审核驳回失败", e);
+      showMessage("error", e instanceof Error ? e.message : "审核驳回失败");
+    } finally {
+      // 6. 重置加载状态
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,13 +201,38 @@ export default function Home() {
         // borderRadius: 8,
       }}
       extra={
-        <Button icon={<IconRefresh />} onClick={handleRefresh}>
+        <Button icon={<IconRefresh />} onClick={handleRefresh} loading={loading} disabled={loading}>
           刷新列表
         </Button>
       }
     >
+      {/* tab 标签页 */}
+      <Tabs activeTab={activeTab} onChange={setActiveTab} type="line">
+        <Tabs.TabPane
+          key="pending"
+          title={
+            <span>
+              待处理
+              <Badge count={stats.pendingCount} style={{ marginLeft: 8 }} />
+            </span>
+          }
+        />
+        <Tabs.TabPane
+          key="processed"
+          title={
+            <span>
+              已处理
+              <Badge
+                count={stats.processedCount}
+                style={{ marginLeft: 8 }}
+                dotStyle={{ background: "#252525" }}
+              />
+            </span>
+          }
+        />
+      </Tabs>
       {/* 酒店信息展示表格 */}
-      <AuditTable data={data} onView={handleOpenDrawer} isLoading={loading} />
+      <AuditTable data={filteredData} onView={handleOpenDrawer} isLoading={loading} />
 
       {/* 酒店详细审核页 */}
       <AuditDrawer

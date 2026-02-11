@@ -1,8 +1,7 @@
 "use client";
 
-import { fetchHotelsList } from "@/actions/admin_service";
+import { approveHotel, fetchHotelsList, offlineHotel } from "@/actions/admin_service";
 import OnlineTable from "@/components/admin/OnlineTable";
-import { MOCK_HOTEL_DATA } from "@/lib/mockdata";
 import { useMessageStore } from "@/store/useMessageStore";
 import { HotelInformation } from "@/types/HotelInformation";
 import { Button, Card, Input, Tabs } from "@arco-design/web-react";
@@ -25,6 +24,9 @@ export default function Home() {
    * 加载数据逻辑
    */
   const loadData = async () => {
+    // 防止重复请求
+    if (loading) return;
+
     setLoading(true);
     try {
       const res = await fetchHotelsList();
@@ -46,8 +48,12 @@ export default function Home() {
   /**
    * 刷新数据逻辑
    */
-  const handleRefresh = () => {
-    // TODO: 调用 API
+  const handleRefresh = async () => {
+    // 调用已有的 loadData 方法
+    await loadData();
+
+    // 显示成功提示
+    showMessage("success", "数据刷新成功");
   };
 
   /**
@@ -66,23 +72,28 @@ export default function Home() {
     });
   }, [data, activeTab, keyword]);
 
-  const handleToggleStatus = (record: HotelInformation) => {
+  /**
+   * 酒店上下线管理
+   * @param record
+   */
+  const handleToggleStatus = async (record: HotelInformation) => {
     setLoading(true);
 
-    // 模拟耗时请求
-    // TODO: 添加实际逻辑
-    setTimeout(() => {
-      const newStatus = record.status === "approved" ? "offline" : "approved";
-      const actionText = newStatus === "approved" ? "上线" : "下线";
-
-      // 更新本地数据
-      setData((prev) =>
-        prev.map((item) => (item.id === record.id ? { ...item, status: newStatus } : item))
-      );
-
-      showMessage("success", `酒店${record.nameZh}已经${actionText}成功`);
+    try {
+      if (record.status === "approved") {
+        await offlineHotel(record.id, record.nameZh);
+        showMessage("success", `酒店${record.nameZh}已下线`);
+      } else {
+        await approveHotel(record.id, record.nameZh, "online");
+        showMessage("success", `酒店${record.nameZh}已上线`);
+      }
+    } catch (error: unknown) {
+      console.log("酒店上下线失败", error);
+      showMessage("error", error instanceof Error ? error.message : "操作失败");
+    } finally {
       setLoading(false);
-    }, 1000);
+      await loadData();
+    }
   };
 
   return (
@@ -90,7 +101,7 @@ export default function Home() {
       title="酒店上线管理"
       style={{ height: "100%" }}
       extra={
-        <Button icon={<IconRefresh />} onClick={handleRefresh}>
+        <Button icon={<IconRefresh />} onClick={handleRefresh} loading={loading} disabled={loading}>
           刷新数据
         </Button>
       }
