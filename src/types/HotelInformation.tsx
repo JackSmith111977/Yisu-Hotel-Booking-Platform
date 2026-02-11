@@ -147,8 +147,4 @@ export type AddressDataType = {
   [province: string]: {
     [city: string]: string[];
   };
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> main
