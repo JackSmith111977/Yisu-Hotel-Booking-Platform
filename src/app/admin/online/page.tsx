@@ -6,6 +6,7 @@ import { useMessageStore } from "@/store/useMessageStore";
 import { HotelInformation } from "@/types/HotelInformation";
 import { Button, Card, Input, Tabs } from "@arco-design/web-react";
 import { IconRefresh, IconSearch } from "@arco-design/web-react/icon";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 export default function Home() {
@@ -19,6 +20,17 @@ export default function Home() {
   const [keyword, setKeyword] = useState("");
 
   const showMessage = useMessageStore((state) => state.showMessage);
+
+  // 获取URL参数
+  const searchParams = useSearchParams();
+
+  // 读取URL中的参数
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   /**
    * 加载数据逻辑
@@ -81,10 +93,10 @@ export default function Home() {
 
     try {
       if (record.status === "approved") {
-        await offlineHotel(record.id);
+        await offlineHotel(record.id, record.nameZh);
         showMessage("success", `酒店${record.nameZh}已下线`);
       } else {
-        await approveHotel(record.id);
+        await approveHotel(record.id, record.nameZh, "online");
         showMessage("success", `酒店${record.nameZh}已上线`);
       }
     } catch (error: unknown) {
