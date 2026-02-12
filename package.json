@@ -11,6 +11,7 @@
   "dependencies": {
     "@ant-design/charts": "^2.6.7",
     "@arco-design/web-react": "^2.66.10",
+    "@next/swc-win32-x64-msvc": "^16.1.6",
     "@reduxjs/toolkit": "^2.11.2",
     "@supabase/supabase-js": "^2.93.3",
     "china-division": "^2.7.0",
