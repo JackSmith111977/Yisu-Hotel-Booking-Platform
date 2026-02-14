@@ -31,6 +31,8 @@ export default function AppearanceSettings() {
 
       <Divider />
 
+      <div>更多配置...</div>
+
       {/* 你可以在这里添加更多设置，比如“紧凑模式”、“主题色”等 */}
     </div>
   );
